@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algoritmusok lépésről lépésre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#edf2f1; --surface:#ffffff; --ink:#15261f; --muted:#56675f; --line:#d5dfdb;
+  --snow:rgba(255,255,255,.95); --accent:#b3202e; --accent-ink:#ffffff;
+  --mark:#f5c542; --ok:#23895a; --bad:#e0483e; --bar:#a7bac4; --on-state:#ffffff;
+  --pine:#14402f; --pine-2:#0d2c21; --gold:#f5c542;
+  --f-xmas:var(--f-display);
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --r:12px;
+  color-scheme:light;
+  /* layout: pine-green header band with snowfall + garland; advent-week groups of task buttons; chapter = task + idea, animation + pseudocode, quiz */
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0d1814; --surface:#15231d; --ink:#ecf2ee; --muted:#9db0a6; --line:#26372f;
+    --snow:rgba(255,255,255,.05); --accent:#ef5b67; --accent-ink:#1a0b0d;
+    --ok:#4cc985; --bad:#ff6f61; --bar:#33473e; --on-state:#0d1814; --pine:#0f2a20; --pine-2:#091c15; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0d1814; --surface:#15231d; --ink:#ecf2ee; --muted:#9db0a6; --line:#26372f;
+  --snow:rgba(255,255,255,.05); --accent:#ef5b67; --accent-ink:#1a0b0d;
+  --ok:#4cc985; --bad:#ff6f61; --bar:#33473e; --on-state:#0d1814; --pine:#0f2a20; --pine-2:#091c15; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background-color:var(--paper);
+  background-image:radial-gradient(var(--snow) 1.6px,transparent 1.8px),radial-gradient(var(--snow) 1px,transparent 1.3px);
+  background-size:38px 38px,23px 23px; background-position:0 0,11px 17px;
+  color:var(--ink); font-family:var(--f-body); font-size:17px; line-height:1.55;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:0 20px}
+header.site{padding:30px 0 4px}
+h1{font-family:var(--f-display); font-weight:800; font-size:clamp(30px,4.4vw,46px); line-height:1.05; margin:0 0 8px; letter-spacing:-.015em; text-wrap:balance}
+h2{font-family:var(--f-display); font-weight:800; font-size:clamp(24px,3vw,32px); line-height:1.15; margin:26px 0 0; text-wrap:balance}
+h3{font-family:var(--f-display); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 8px}
+p{margin:0}
+.sub{color:var(--muted); max-width:68ch}
+
+nav.tabs{display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 4px}
+nav.tabs a{display:flex; align-items:center; gap:10px; padding:7px 16px 7px 7px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink); text-decoration:none; font-weight:700; font-size:15px; line-height:1.2}
+nav.tabs a:hover{border-color:var(--accent)}
+nav.tabs .n{display:grid; place-items:center; width:28px; height:28px; border-radius:50%; border:1px solid var(--line); font-family:var(--f-mono); font-size:13px}
+nav.tabs .k{display:block; font-weight:400; color:var(--muted); font-size:12px}
+nav.tabs a[aria-current="page"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+nav.tabs a[aria-current="page"] .k{color:inherit; opacity:.85}
+nav.tabs a[aria-current="page"] .n{background:var(--accent-ink); color:var(--accent); border-color:transparent}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:16px 18px}
+.intro{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0}
+.work{display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:16px; align-items:start}
+
+.ask{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; margin-bottom:6px}
+.ask label{font-weight:700}
+.ask input{font:inherit; font-family:var(--f-mono); width:5.5em; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--paper); color:var(--ink)}
+.ask .hint{color:var(--muted); font-size:14px}
+
+.stage{position:relative; height:220px; margin-top:30px}
+.item{position:absolute; top:0; bottom:0; display:flex; align-items:flex-end; padding:0 3px; transition:left .45s cubic-bezier(.4,.1,.2,1)}
+.bar{position:relative; width:100%; background:var(--bar); border-radius:6px 6px 2px 2px; display:flex; justify-content:center; transition:height .35s, background-color .25s, opacity .25s, box-shadow .25s}
+.bar .val{position:absolute; top:-1.55em; font-family:var(--f-mono); font-weight:600; font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap}
+.stage.boxes{height:84px}
+.stage.boxes .item{align-items:center}
+.stage.boxes .bar{height:64px !important; border-radius:8px; align-items:center}
+.stage.boxes .bar .val{position:static; font-size:16px}
+.item.active .bar{background:var(--mark); box-shadow:inset 0 0 0 2px #1a1a1a}
+.item.best .bar{background:var(--accent)}
+.item.hit .bar,.item.sorted .bar{background:var(--ok)}
+.item.swap .bar{background:var(--bad)}
+.item.seen .bar{opacity:.4}
+.item.out .bar{opacity:.14}
+.stage.boxes .item.active .val{color:#1a1a1a}
+.stage.boxes .item.best .val{color:var(--accent-ink)}
+.stage.boxes .item.hit .val,.stage.boxes .item.sorted .val,.stage.boxes .item.swap .val{color:var(--on-state)}
+
+.idx,.marks{position:relative}
+.idx{height:22px; border-top:2px solid var(--ink); margin-top:2px}
+.idx span{position:absolute; top:2px; text-align:center; font-family:var(--f-mono); font-size:12px; color:var(--muted)}
+.marks{height:62px}
+.mark-cell{position:absolute; top:0; display:flex; flex-direction:column; align-items:center; gap:3px}
+.tag{font-family:var(--f-mono); font-size:11px; font-weight:600; background:var(--ink); color:var(--paper); padding:0 6px; border-radius:4px; line-height:1.6; white-space:nowrap}
+
+.legend{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:14px; color:var(--muted)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{display:inline-block; width:14px; height:14px; border-radius:4px; background:var(--bar)}
+.sw.active{background:var(--mark); box-shadow:inset 0 0 0 2px #1a1a1a}
+.sw.best{background:var(--accent)} .sw.hit,.sw.sorted{background:var(--ok)} .sw.swap{background:var(--bad)}
+.sw.seen{opacity:.4} .sw.out{opacity:.14}
+
+.msg{min-height:3.4em; font-size:18px; margin:14px 0 12px; padding:10px 14px; border-left:4px solid var(--mark); background:var(--paper); border-radius:0 8px 8px 0}
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+button{font:inherit; font-weight:700; font-size:15px; padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+button:disabled{opacity:.45; cursor:default}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--mark); outline-offset:2px}
+.spd{display:inline-flex; align-items:center; gap:6px; font-size:15px; color:var(--muted)}
+select{font:inherit; font-size:15px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink)}
+.controls .push{margin-left:auto}
+.progress{display:flex; align-items:center; gap:12px; margin-top:12px; font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums}
+.progress input{flex:1; accent-color:var(--accent)}
+
+.code{overflow-x:auto; margin:0 -8px 16px}
+.code ol{list-style:none; margin:0; padding:0; font-family:var(--f-mono); font-size:14px; counter-reset:ln}
+.code li{position:relative; padding:3px 10px 3px 38px; white-space:pre; border-radius:6px; transition:background-color .2s}
+.code li::before{counter-increment:ln; content:counter(ln); position:absolute; left:6px; width:22px; text-align:right; color:var(--muted); font-size:12px; top:5px}
+.code li.on{background:var(--mark); color:#1a1a1a}
+.code li.on::before{color:#1a1a1a}
+.vars{display:flex; flex-wrap:wrap; gap:8px; min-height:34px; margin-bottom:16px}
+.var{border:1px solid var(--line); border-radius:8px; padding:3px 10px; font-family:var(--f-mono); font-size:14px; font-variant-numeric:tabular-nums}
+.var b{color:var(--accent)}
+details{border-top:1px solid var(--line); padding-top:10px}
+summary{cursor:pointer; font-weight:700}
+pre{font-family:var(--f-mono); font-size:13px; background:var(--paper); padding:12px; border-radius:8px; overflow-x:auto; margin:10px 0 0}
+
+.quiz{margin:8px 0 40px}
+.quiz .sub{margin:4px 0 14px}
+.qs{display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px}
+.qt{font-weight:700; margin-bottom:10px}
+.qn{font-family:var(--f-mono); color:var(--accent)}
+.opts{display:grid; gap:8px}
+.opt{text-align:left; font-weight:400; line-height:1.35}
+.opt:disabled{opacity:.55}
+.opt.right{border-color:var(--ok); background:color-mix(in srgb,var(--ok) 16%,var(--surface)); opacity:1}
+.opt.wrong{border-color:var(--bad); background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.fb{margin-top:10px; font-size:15px}
+footer{color:var(--muted); font-size:14px; padding:0 0 40px}
+kbd{font-family:var(--f-mono); font-size:12px; border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 5px; background:var(--surface)}
+
+/* christmas story additions */
+.intro{grid-template-columns:repeat(3,minmax(0,1fr))}
+.chap-head{display:flex; align-items:center; gap:14px; margin-top:26px}
+.chap-head .eyebrow{font-family:var(--f-display); font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+.chap-head + h2{margin-top:4px}
+.candles{display:block; flex:none}
+.candles .body{fill:var(--accent)}
+.candles .wreath{fill:none; stroke:var(--ok); stroke-width:5; stroke-linecap:round}
+.candles .flame{fill:var(--mark)} .candles .core{fill:#ff8a1f}
+.candles .wick{stroke:var(--ink); stroke-width:1.5}
+.task{font-style:italic}
+.tetel{display:inline-block; margin-top:10px; font-size:13px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:999px; padding:1px 10px; font-style:normal}
+.story-card{margin-top:16px; max-width:900px}
+.story-card p + p{margin-top:8px}
+.item.alert .bar{background:var(--bad)}
+.stage.boxes .item.alert .val{color:var(--on-state)}
+.sw.alert{background:var(--bad)}
+.sw.thrsw{background:none; height:0; width:18px; border-top:2px dashed var(--bad); border-radius:0}
+.thr{position:absolute; left:0; right:0; border-top:2px dashed var(--bad); pointer-events:none; z-index:1}
+.thr span{position:absolute; left:0; top:-1.7em; font:600 12px var(--f-mono); color:var(--bad); background:var(--surface); padding:0 4px; border-radius:4px}
+.out{font-family:var(--f-mono); font-size:14px; background:#141826; color:#e8ebf4; border-radius:8px; padding:8px 12px; margin:-2px 0 12px; min-height:2.5em; display:flex; gap:10px; align-items:baseline}
+.out .lbl{color:#8f98b3; font-size:12px; text-transform:uppercase; letter-spacing:.06em; flex:none}
+.out .ph{color:#8f98b3}
+.ask .unit{color:var(--muted)}
+
+
+/* christmas look */
+.band{position:relative; overflow:hidden; background:linear-gradient(180deg,var(--pine),var(--pine-2)); color:#f4f8f5; padding:30px 0 50px}
+#snow{position:absolute; inset:0; width:100%; height:100%; display:block}
+.band-in{position:relative}
+.kicker{font-family:var(--f-display); font-weight:600; text-transform:uppercase; letter-spacing:.12em; font-size:13px; color:var(--gold)}
+.band h1{font-family:var(--f-xmas); font-weight:800; font-size:clamp(42px,6.5vw,72px); color:#fff; margin:2px 0 6px; letter-spacing:0; line-height:1.05}
+.lead{color:#cfe0d6; max-width:62ch}
+.garland{position:absolute; left:0; right:0; bottom:0; height:30px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='30'%3E%3Cpath d='M0 4 Q24 16 48 4 T96 4' fill='none' stroke='%23315f4b' stroke-width='2'/%3E%3Crect x='21' y='9' width='6' height='5' rx='1' fill='%23c9b27a'/%3E%3Cellipse cx='24' cy='19' rx='5' ry='7' fill='%23e8424f'/%3E%3Crect x='69' y='9' width='6' height='5' rx='1' fill='%23c9b27a'/%3E%3Cellipse cx='72' cy='19' rx='5' ry='7' fill='%23f5c542'/%3E%3C/svg%3E") repeat-x; background-size:96px 30px}
+.weeks{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:22px 0 6px; align-items:start}
+.week{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px 12px 14px; display:flex; flex-direction:column; gap:8px}
+.week-head{display:flex; flex-direction:column; align-items:center; gap:0; padding-bottom:2px}
+.week-head .wk{font-family:var(--f-xmas); font-weight:800; font-size:19px; color:var(--accent); line-height:1.2}
+.week-head .prog{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
+.week-head .prog.done{color:var(--ok); font-weight:700}
+.candles .unlit{opacity:.9}
+.linkbtn{font:inherit; font-size:14px; font-weight:400; padding:2px 8px; margin-left:8px; color:var(--muted); background:none; border:1px solid var(--line)}
+.week a{display:block; padding:9px 12px; border:1px solid var(--line); border-radius:10px; text-decoration:none; color:var(--ink); background:var(--paper)}
+.week a .t{display:block; font-weight:700; font-size:16px; line-height:1.25}
+.week a .k{display:block; font-size:13px; color:var(--muted)}
+.week a:hover{border-color:var(--accent)}
+.week a[aria-current="page"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.week a[aria-current="page"] .k{color:inherit; opacity:.85}
+.candles{display:block; width:150px; height:auto}
+.candles .leaf{fill:none; stroke:var(--ok); stroke-width:10; stroke-linecap:round}
+.candles .berry{fill:var(--accent)}
+.candles .wick{stroke:var(--ink); stroke-width:1.6}
+.candles .flame{fill:var(--gold); transform-box:fill-box; transform-origin:50% 100%; animation:flick 1.4s ease-in-out infinite alternate}
+.candles .core{fill:#ff8a1f}
+.candles .glow{fill:var(--gold); opacity:.18}
+@keyframes flick{from{transform:scale(1,1) rotate(-2deg)} to{transform:scale(.92,1.08) rotate(2deg)}}
+.chap-title{font-family:var(--f-xmas); font-size:clamp(30px,4vw,42px); margin-top:2px}
+.intro{grid-template-columns:repeat(2,minmax(0,1fr))}
+.task{font-size:18px; font-style:normal}
+@media (max-width:900px){ .weeks{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:480px){ .weeks{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ .candles .flame{animation:none} }
+@media (max-width:960px){ .intro{grid-template-columns:1fr} }
+@media (max-width:860px){
+  .work{grid-template-columns:1fr}
+  .stage{height:180px}
+  .controls .push{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important}
+}
+</style>
+</head>
+<body>
+<header class="band">
+  <canvas id="snow" aria-hidden="true"></canvas>
+  <div class="wrap band-in">
+    <p class="kicker">Algoritmusok lépésről lépésre</p>
+    <h1>A 10.B karácsonya</h1>
+    <p class="lead">Négy adventi hét, hét programozási probléma. Válassz egy feladatot, értsd meg és válaszolj a kérdésekre.</p>
+  </div>
+  <div class="garland" aria-hidden="true"></div>
+</header>
+<div class="wrap">
+  <nav class="weeks" id="tabs" aria-label="Feladatok adventi hetek szerint"></nav>
+  <main id="view"></main>
+  <footer>Billentyűk: <kbd>→</kbd> következő lépés · <kbd>←</kbd> vissza · <kbd>szóköz</kbd> lejátszás / szünet <button class="linkbtn" id="b-progress">Haladás törlése</button></footer>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+let uid = 0;
+const mk = vals => vals.map(v => ({ id: uid++, v }));
+function uniq(n, lo, hi){ const s = new Set(); while (s.size < n) s.add(rnd(lo, hi)); return [...s]; }
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// Hungarian article before a number: "az 1", "az 5", "az 1000", otherwise "a"
+const az = n => { const s = String(n); return (s === '1' || s[0] === '5' || (s.length === 4 && s[0] === '1')) ? 'az' : 'a'; };
+const Az = n => az(n) === 'az' ? 'Az' : 'A';
+const ft = v => v.toLocaleString('hu-HU');
+function F(arr, o = {}){
+  return { arr: arr.map(x => ({ id: x.id, v: x.v })), st: o.st || {}, marks: o.marks || {}, vars: o.vars || {}, line: o.line ?? -1, msg: o.msg || '', out: o.out || '' };
+}
+function addMark(m, i, t){ (m[i] = m[i] || []).push(t); return m; }
+const list = d => d.arr.map(e => e.v).join(', ');
+
+/* ---------- 1. ÖSSZEGZÉS: mézeskalács ---------- */
+const OSSZ = {
+  id: 'osszegzes', name: 'Összegzés', topic: 'mézeskalács', week: 1,
+  title: 'Mézeskalács-sütés',
+  task: 'Az osztály nyolc délután sütött mézeskalácsot, az adatok a napi darabszámok. Határozza meg, hány mézeskalács készült összesen!',
+  idea: 'Egy <b>összeg</b> változót nulláról indítunk, és sorban hozzáadjuk minden nap darabszámát. Ez az összegzés tétele: minden „mennyi összesen?” kérdés így oldható meg.',
+  mode: 'bars', domain: [0, 65],
+  legend: [['active','éppen hozzáadjuk'],['best','már benne van az összegben']],
+  data(){ return { arr: mk(Array.from({ length: 8 }, () => rnd(22, 60))) }; },
+  pseudo: ['összeg := 0','Ciklus i := 1-től N-ig','  összeg := összeg + X[i]','Ciklus vége','Ki: összeg'],
+  py: d => `mezeskalacs = [${list(d)}]\n\nosszeg = 0\nfor db in mezeskalacs:\n    osszeg += db\nprint(f"Összesen {osszeg} mézeskalács készült.")\n\n# Pythonban röviden: sum(mezeskalacs)`,
+  gen(d){
+    const a = d.arr, R = []; let s = 0; const st = {};
+    R.push(F(a, { line: 0, vars: { 'összeg': 0 }, msg: 'Még semmit sem adtunk össze, ezért az összeg kezdetben 0.' }));
+    a.forEach((x, i) => {
+      const old = s; s += x.v;
+      R.push(F(a, { line: 2, st: { ...st, [i]: 'active' }, marks: { [i]: ['i'] }, vars: { i: i+1, 'X[i]': x.v, 'összeg': s }, msg: `${i+1}. nap: ${x.v} db. összeg := ${old} + ${x.v} = <b>${s}</b>.` }));
+      st[i] = 'best';
+    });
+    R.push(F(a, { line: 4, st: { ...st }, vars: { 'összeg': s }, msg: `Kész! Összesen <b>${s} mézeskalács</b> készült.`, out: `Összesen ${s} mézeskalács készült.` }));
+    return R;
+  },
+  quiz: [
+    { q: 'Mi az összeg változó kezdőértéke, és miért?', o: ['1, mert az első nappal kezdünk', '0, mert a nulla hozzáadása nem változtat az eredményen', 'Az első nap darabszáma', 'Mindegy, mi a kezdőérték'], a: 1, why: 'Ha nem nulláról indulnánk, a kezdőérték is beleszámítana az összegbe.' },
+    { q: '8 sütési nap esetén hányszor fut le az „összeg := összeg + X[i]” sor?', o: ['Egyszer', '7-szer', '8-szor', 'Annyiszor, ahány mézeskalács készült'], a: 2, why: 'A ciklus minden napra egyszer fut le, minden alkalommal hozzáadja az aznapi darabszámot.' },
+    { q: 'Hogyan kapjuk meg ebből, hány mézeskalács készült átlagosan egy nap?', o: ['összeg / N', 'összeg · N', 'összeg − N', 'Új ciklus kell hozzá'], a: 0, why: 'Az átlag az összeg osztva az elemek számával, így az összegzés után egy osztás elég.' }
+  ]
+};
+
+/* ---------- 2. MEGSZÁMOLÁS: havazás ---------- */
+const MEGSZ = {
+  id: 'megszamolas', name: 'Megszámolás', topic: 'havazás', week: 1,
+  title: 'Hóesés',
+  task: 'Az adatok december első 14 napján a friss hó vastagságát mutatják centiméterben (0 = nem esett). Határozza meg, hány napon esett hó!',
+  idea: 'Egy <b>számlálót</b> (db) nulláról indítunk, és minden olyan napnál eggyel növeljük, amikor teljesül a feltétel (esett hó). Ez a megszámolás tétele: „hány darab olyan…?”',
+  mode: 'bars', domain: [0, 16], minH: 3,
+  legend: [['active','éppen vizsgált nap'],['hit','havas nap (megszámoltuk)'],['seen','nem esett hó']],
+  data(){ let v; do { v = Array.from({ length: 14 }, () => Math.random() < 0.5 ? 0 : rnd(1, 15)); } while (v.filter(x => x > 0).length < 3); return { arr: mk(v) }; },
+  pseudo: ['db := 0','Ciklus i := 1-től N-ig','  Ha X[i] > 0 akkor','    db := db + 1','  Elágazás vége','Ciklus vége','Ki: db'],
+  py: d => `ho = [${list(d)}]   # cm, 0 = nem esett\n\ndb = 0\nfor cm in ho:\n    if cm > 0:\n        db += 1\nprint(f"{db} napon esett hó.")`,
+  gen(d){
+    const a = d.arr, R = []; let db = 0; const st = {};
+    R.push(F(a, { line: 0, vars: { db }, msg: 'Még egy napot sem számoltunk meg, ezért kezdetben <b>db = 0</b>.' }));
+    a.forEach((x, i) => {
+      R.push(F(a, { line: 2, st: { ...st, [i]: 'active' }, marks: { [i]: ['i'] }, vars: { i: i+1, 'X[i]': x.v + ' cm', db }, msg: `December ${i+1}.: ${x.v} cm hó. Igaz, hogy ${x.v} &gt; 0?` }));
+      if (x.v > 0){
+        db++; st[i] = 'hit';
+        R.push(F(a, { line: 3, st: { ...st }, marks: { [i]: ['i'] }, vars: { i: i+1, 'X[i]': x.v + ' cm', db }, msg: `Igen, esett hó. Növeljük a számlálót: <b>db = ${db}</b>.` }));
+      } else {
+        st[i] = 'seen';
+        R.push(F(a, { line: 2, st: { ...st }, marks: { [i]: ['i'] }, vars: { i: i+1, 'X[i]': x.v + ' cm', db }, msg: `Nem esett hó, ezt a napot nem számoljuk. db marad ${db}.` }));
+      }
+    });
+    R.push(F(a, { line: 6, st: { ...st }, vars: { db }, msg: `Kész! <b>${db} napon</b> esett hó. Minden napot pontosan egyszer néztünk meg.`, out: `${db} napon esett hó.` }));
+    return R;
+  },
+  quiz: [
+    { q: 'Mi a különbség az összegzés és a megszámolás között?', o: ['Nincs különbség', 'A megszámolás mindig 1-et ad hozzá, az összegzés az elem értékét', 'A megszámolás visszafelé halad', 'Az összegzéshez feltétel kell'], a: 1, why: 'A megszámolás azt nézi, hány elem felel meg, nem azt, mennyi az értékük. Ezért a számlálót mindig eggyel növeli.' },
+    { q: 'Mit kell átírni, hogy azt számolja meg, hány napon esett legalább 10 cm hó?', o: ['A ciklus határait', 'A feltételt erre: X[i] ≥ 10', 'A db kezdőértékét 10-re', 'A db := db + 10 sort'], a: 1, why: 'A megszámolás szerkezete mindig ugyanaz, csak a feltétel változik.' },
+    { q: '14 nap esetén hányszor vizsgáljuk meg a feltételt?', o: ['Annyiszor, ahány havas nap volt', '13-szor', '14-szer', 'Egyszer'], a: 2, why: 'A ciklus minden napra lefut, így a feltételt mind a 14 napnál megvizsgáljuk.' }
+  ]
+};
+
+/* ---------- 3. MAXIMUMKIVÁLASZTÁS: karácsonyi vásár ---------- */
+const MAX = {
+  id: 'maximum', name: 'Maximumkiválasztás', topic: 'karácsonyi vásár', week: 2,
+  title: 'Karácsonyi vásár',
+  task: 'Az osztály hat napig árult a karácsonyi vásáron, az adatok a napi bevételek forintban. Adja meg, melyik napon volt a legnagyobb a bevétel, és mennyi volt az!',
+  idea: 'Feltesszük, hogy az <b>első nap</b> volt a legjobb, és megjegyezzük a sorszámát (max). Utána minden napot ehhez hasonlítunk; ha jobbat találunk, átírjuk a max értékét.',
+  mode: 'bars', domain: [0, 33000], fmt: ft,
+  legend: [['active','éppen vizsgált nap'],['best','eddigi legjobb nap (max)'],['seen','már nem jöhet szóba']],
+  data(){ return { arr: mk(Array.from({ length: 6 }, () => rnd(16, 64) * 500)) }; },
+  pseudo: ['max := 1','Ciklus i := 2-től N-ig','  Ha X[i] > X[max] akkor','    max := i','  Elágazás vége','Ciklus vége','Ki: max, X[max]'],
+  py: d => `bevetel = [${list(d)}]   # Ft\n\n# Pythonban 0-tól számozunk\nmax_i = 0\nfor i in range(1, len(bevetel)):\n    if bevetel[i] > bevetel[max_i]:\n        max_i = i\nprint(f"A legnagyobb bevétel a(z) {max_i + 1}. napon volt: {bevetel[max_i]} Ft.")`,
+  gen(d){
+    const a = d.arr, R = []; let m = 0; const seen = {};
+    const S = extra => { const s = {}; for (const k in seen) s[k] = 'seen'; s[m] = 'best'; return Object.assign(s, extra || {}); };
+    const M = i => { const o = {}; addMark(o, m, 'max'); if (i != null) addMark(o, i, 'i'); return o; };
+    R.push(F(a, { line: 0, st: S(), marks: M(), vars: { max: 1, 'X[max]': ft(a[0].v) + ' Ft' }, msg: 'Első tippünk: az <b>1. nap</b> volt a legjobb. Ehhez hasonlítjuk a többit.' }));
+    for (let i = 1; i < a.length; i++){
+      const v = a[i].v, best = a[m].v;
+      R.push(F(a, { line: 2, st: S({ [i]: 'active' }), marks: M(i), vars: { i: i+1, max: m+1, 'X[max]': ft(best) + ' Ft' }, msg: `${i+1}. nap: <b>${ft(v)} Ft</b>. Több, mint az eddigi legjobb (${ft(best)} Ft)?` }));
+      if (v > best){
+        seen[m] = 1; m = i;
+        R.push(F(a, { line: 3, st: S(), marks: M(i), vars: { i: i+1, max: m+1, 'X[max]': ft(v) + ' Ft' }, msg: `Igen! Mostantól ez a legjobb nap: <b>max = ${i+1}</b>.` }));
+      } else {
+        seen[i] = 1;
+        R.push(F(a, { line: 2, st: S(), marks: M(i), vars: { i: i+1, max: m+1, 'X[max]': ft(best) + ' Ft' }, msg: `Nem (${ft(v)} ≤ ${ft(best)}). A max marad ${m+1}.` }));
+      }
+    }
+    R.push(F(a, { line: 6, st: S(), marks: M(), vars: { max: m+1, 'X[max]': ft(a[m].v) + ' Ft' }, msg: `Kész! A legjobb nap ${az(m+1)} <b>${m+1}.</b> volt, <b>${ft(a[m].v)} Ft</b> bevétellel. ${a.length - 1} összehasonlítás kellett.`, out: `A legnagyobb bevétel ${az(m+1)} ${m+1}. napon volt: ${ft(a[m].v)} Ft.` }));
+    return R;
+  },
+  quiz: [
+    { q: 'Miért 2-től indul a ciklus?', o: ['Mert az 1. napot már a max kezdőértékének vettük', 'Mert az első nap mindig a legrosszabb', 'Elírás, 1-től kellene', 'Mert a napok 2-től vannak számozva'], a: 0, why: 'Az első napot nem kell önmagához hasonlítani: ő az induló „bajnok”.' },
+    { q: 'Két napon is ugyanannyi, a legnagyobb bevétel volt. Melyik nap sorszámát adja ki az algoritmus?', o: ['A későbbiét', 'A korábbiét', 'Mindkettőt', 'Hibát jelez'], a: 1, why: 'A feltétel szigorú (>). Az egyenlő érték nem írja felül a max-ot, így az első előfordulás marad.' },
+    { q: 'Mit kell változtatni, hogy a leggyengébb napot keresse?', o: ['A ciklust visszafelé futtatni', 'max := N kezdőérték', 'A > jelet < jelre cserélni', 'Az X[1]-gyel hasonlítani mindig'], a: 2, why: 'A minimumkiválasztás ugyanez, csak fordított relációval.' },
+    { q: 'Miért a nap sorszámát (indexét) jegyezzük meg, és nem a bevételt?', o: ['Mert a sorszámból a bevétel is kiolvasható, fordítva nem', 'Mert a sorszám kisebb szám', 'Mert pénzt nem lehet változóban tárolni', 'Nincs különbség'], a: 0, why: 'X[max] megadja a bevételt, de egy összegből nem tudjuk meg, melyik napon volt.' }
+  ]
+};
+
+/* ---------- 4. ELDÖNTÉS: titkos Mikulás ---------- */
+const ELD = {
+  id: 'eldontes', name: 'Eldöntés', topic: 'titkos Mikulás', week: 2,
+  title: 'Titkos Mikulás',
+  task: 'Egy titkos Mikulás-ajándék legfeljebb 2500 Ft lehetett, az adatok az ajándékok árai. Döntse el, volt-e keretet túllépő ajándék! Ha volt, írja ki: „Volt keretet túllépő ajándék.”, különben: „Mindenki betartotta a keretet.”',
+  idea: 'Sorban nézzük az ajándékokat, és <b>az első túl drágánál megállunk</b>: a kérdés csak az, van-e ilyen, ehhez egy is elég. Ha a végére értünk, és nem találtunk, akkor nincs. Ez az eldöntés tétele.',
+  mode: 'bars', domain: [0, 3300], fmt: ft,
+  param: { label: 'Keret', unit: 'Ft', min: 500, max: 3200, step: 100, def: 2500 },
+  legend: [['active','éppen vizsgált'],['seen','belefér a keretbe'],['alert','túllépi a keretet'],['thrsw','a keret']],
+  data(){
+    const v = Array.from({ length: 12 }, () => rnd(9, 25) * 100);
+    if (Math.random() < 0.6) v[rnd(3, 11)] = rnd(26, 32) * 100;
+    return { arr: mk(v), p: 2500 };
+  },
+  pseudo: ['i := 1','Ciklus amíg i ≤ N és nem (X[i] > keret)','  i := i + 1','Ciklus vége','van := (i ≤ N)','Ki: van'],
+  py: d => `arak = [${list(d)}]   # Ft\nKERET = ${d.p}\n\ni = 0\nwhile i < len(arak) and not arak[i] > KERET:\n    i += 1\nif i < len(arak):\n    print("Volt keretet túllépő ajándék.")\nelse:\n    print("Mindenki betartotta a keretet.")\n\n# Pythonban röviden: any(ar > KERET for ar in arak)`,
+  gen(d){
+    const a = d.arr, K = d.p, n = a.length, R = []; let i = 0; const st = {};
+    const kk = ft(K) + ' Ft';
+    R.push(F(a, { line: 0, marks: { 0: ['i'] }, vars: { keret: kk, i: 1 }, msg: `Az első ajándéktól indulunk. Azt keressük, van-e ${kk}-nál drágább.` }));
+    while (i < n){
+      const v = a[i].v, bad = v > K;
+      R.push(F(a, { line: 1, st: { ...st, [i]: 'active' }, marks: { [i]: ['i'] }, vars: { keret: kk, i: i+1, 'X[i]': ft(v) + ' Ft' }, msg: `${Az(i+1)} ${i+1}. ajándék ${ft(v)} Ft. Drágább, mint ${kk}? ${bad ? '<b>Igen!</b>' : 'Nem.'}` }));
+      if (bad) break;
+      st[i] = 'seen'; i++;
+      R.push(F(a, { line: 2, st: { ...st }, marks: i < n ? { [i]: ['i'] } : {}, vars: { keret: kk, i: i+1 }, msg: `Ez belefér a keretbe, jöhet a következő: i = ${i+1}.` }));
+    }
+    if (i < n){
+      st[i] = 'alert';
+      const skip = n - i - 1;
+      R.push(F(a, { line: [4, 5], st: { ...st }, marks: { [i]: ['i'] }, vars: { keret: kk, i: i+1, van: 'igaz' }, msg: `van = igaz. ${Az(i+1)} ${i+1}. ajándék túllépte a keretet.${skip ? ` A maradék ${skip} ajándékot meg sem kellett néznünk.` : ''}`, out: 'Volt keretet túllépő ajándék.' }));
+    } else {
+      R.push(F(a, { line: [4, 5], st: { ...st }, vars: { keret: kk, i: n+1, van: 'hamis' }, msg: `i = ${n+1} &gt; N: mind a ${n} ajándékot megnéztük, egyik sem drágább ${kk}-nál.`, out: 'Mindenki betartotta a keretet.' }));
+    }
+    return R;
+  },
+  quiz: [
+    { q: 'Miért állhat meg a ciklus az első túl drága ajándéknál?', o: ['Mert a többi ajándék úgyis olcsóbb', 'Mert csak az a kérdés, VAN-e ilyen, ehhez egy is elég', 'Mert a ciklus csak egyszer futhat le', 'Nem állhat meg, mindet meg kell nézni'], a: 1, why: 'Az eldöntés igen/nem választ ad. Ha egy elem már teljesíti a feltételt, a válasz biztosan igen.' },
+    { q: 'Ha egyik ajándék sem lépi túl a keretet, hány ajándékot kell megnézni?', o: ['Egyet sem', 'A felét', 'Mind a 12-t', 'Csak az utolsót'], a: 2, why: 'Csak akkor mondhatjuk biztosan, hogy nincs ilyen, ha mindegyiket ellenőriztük.' },
+    { q: 'Hogyan döntenéd el, hogy MINDEN ajándék belefér-e a keretbe?', o: ['Megnézzük, van-e olyan, amelyik NEM fér bele. Ha nincs, mind belefér.', 'Ez csak összegzéssel oldható meg', 'Elég az első ajándékot megnézni', 'Maximumkiválasztással nem lehet'], a: 0, why: 'A „mindegyik jó” a „van-e rossz” tagadása, így ugyanaz az eldöntés-minta működik, csak fordított a feltétel és a válasz.' }
+  ]
+};
+
+/* ---------- 5. KERESÉS: fenyőfa ---------- */
+const KER = {
+  id: 'kereses', name: 'Keresés', topic: 'fenyőfa', week: 3,
+  title: 'Fenyőfa-vásárlás',
+  task: 'A terembe legfeljebb 210 cm-es fenyő fér be, az adatok az árusnál sorban álló fák magasságai. Adja meg, hányadik az első megfelelő fa, és milyen magas! Ha nincs ilyen, írja ki: „Nincs megfelelő fa.”',
+  idea: 'Ugyanúgy haladunk, mint az eldöntésnél, és az első megfelelőnél megállunk. A különbség: itt azt is megmondjuk, <b>hol</b> találtuk. Ez a (lineáris) keresés tétele.',
+  mode: 'bars', domain: [100, 290],
+  param: { label: 'Legnagyobb magasság', unit: 'cm', min: 150, max: 290, step: 5, def: 210 },
+  legend: [['active','éppen mért fa'],['seen','túl magas'],['hit','az első megfelelő fa'],['thrsw','a határ']],
+  data(){
+    const v = Array.from({ length: 10 }, () => rnd(215, 280));
+    if (Math.random() < 0.85){ v[rnd(3, 8)] = rnd(170, 210); if (Math.random() < 0.5) v[9] = rnd(170, 210); }
+    return { arr: mk(v), p: 210 };
+  },
+  pseudo: ['i := 1','Ciklus amíg i ≤ N és nem (X[i] ≤ határ)','  i := i + 1','Ciklus vége','van := (i ≤ N)','Ha van akkor Ki: i, X[i]','különben Ki: "Nincs megfelelő fa."'],
+  py: d => `fak = [${list(d)}]   # cm\nHATAR = ${d.p}\n\n# Pythonban 0-tól számozunk\ni = 0\nwhile i < len(fak) and not fak[i] <= HATAR:\n    i += 1\nif i < len(fak):\n    print(f"A(z) {i + 1}. fa ({fak[i]} cm) befér a terembe.")\nelse:\n    print("Nincs megfelelő fa.")`,
+  gen(d){
+    const a = d.arr, P = d.p, n = a.length, R = []; let i = 0; const st = {};
+    R.push(F(a, { line: 0, marks: { 0: ['i'] }, vars: { 'határ': P + ' cm', i: 1 }, msg: `Az első fánál kezdünk. Legfeljebb ${P} cm-es fát keresünk.` }));
+    while (i < n){
+      const v = a[i].v, ok = v <= P;
+      R.push(F(a, { line: 1, st: { ...st, [i]: 'active' }, marks: { [i]: ['i'] }, vars: { 'határ': P + ' cm', i: i+1, 'X[i]': v + ' cm' }, msg: `${Az(i+1)} ${i+1}. fa ${v} cm magas. Befér (${v} ≤ ${P})? ${ok ? '<b>Igen!</b>' : 'Nem.'}` }));
+      if (ok) break;
+      st[i] = 'seen'; i++;
+      R.push(F(a, { line: 2, st: { ...st }, marks: i < n ? { [i]: ['i'] } : {}, vars: { 'határ': P + ' cm', i: i+1 }, msg: `Túl magas, megyünk a következőhöz: i = ${i+1}.` }));
+    }
+    if (i < n){
+      st[i] = 'hit';
+      R.push(F(a, { line: [4, 5], st: { ...st }, marks: { [i]: ['i'] }, vars: { 'határ': P + ' cm', i: i+1, van: 'igaz' }, msg: `Megvan! ${Az(i+1)} <b>${i+1}. fa</b> (${a[i].v} cm) befér a terembe. A mögötte álló fákat már nem kellett megmérni.`, out: `${Az(i+1)} ${i+1}. fa (${a[i].v} cm) befér a terembe.` }));
+    } else {
+      R.push(F(a, { line: [4, 6], st: { ...st }, vars: { 'határ': P + ' cm', i: n+1, van: 'hamis' }, msg: `i = ${n+1} &gt; N: mind a ${n} fát megmértük, egyik sem elég alacsony. Másik árust kell keresni.`, out: 'Nincs megfelelő fa.' }));
+    }
+    return R;
+  },
+  quiz: [
+    { q: 'Miben több a keresés az eldöntésnél?', o: ['Semmiben, ugyanaz', 'Azt is megmondja, HOL van a megfelelő elem', 'Mindig minden elemet megvizsgál', 'Rendezett adatokat igényel'], a: 1, why: 'Az eldöntés csak igent vagy nemet mond, a keresés a megtalált elem sorszámát is megadja.' },
+    { q: 'Miért áll a ciklusfeltételben elöl az „i ≤ N” rész?', o: ['Hogy ne nézzünk a sor vége utáni, nem létező fára', 'Csak megszokásból, a sorrend mindegy', 'Hogy gyorsabb legyen', 'Mert így rövidebb a kód'], a: 0, why: 'Ha i már N+1, akkor X[i] nem létezik. A rövidzáras kiértékelés miatt az első hamis feltétel után a másodikat a gép már nem nézi meg.' },
+    { q: 'Ha a 4. és a 7. fa is befér, melyiket adja meg az algoritmus?', o: ['A 7.-et', 'A 4.-et', 'Mindkettőt', 'Az alacsonyabbat'], a: 1, why: 'Az első megfelelőnél megáll, a többit már meg sem nézi.' }
+  ]
+};
+
+/* ---------- 6. KIVÁLOGATÁS: fényfüzér ---------- */
+const KIV = {
+  id: 'kivalogatas', name: 'Kiválogatás', topic: 'fényfüzér', week: 3,
+  title: 'Fényfüzér',
+  task: 'Az adatok a fényfüzér 12 izzójának fényereje százalékban. A 30% alattiakat ki kell cserélni. Írja ki ezek sorszámát! Ha nincs ilyen, írja ki: „Nincs cserélendő izzó.”',
+  idea: 'Végigmegyünk az összes izzón, és a feltételnek megfelelők sorszámát <b>egy új listába (Y) gyűjtjük</b>. Közben számoljuk is őket (db). Ez a kiválogatás tétele: „melyek azok, amelyek…?”',
+  mode: 'bars', domain: [0, 100], minH: 4,
+  param: { label: 'Határ', unit: '%', min: 5, max: 95, step: 5, def: 30 },
+  legend: [['active','éppen mért izzó'],['seen','jó izzó'],['alert','cserélendő (kiválogattuk)'],['thrsw','a határ']],
+  data(){
+    const v = Array.from({ length: 12 }, () => rnd(38, 100));
+    const k = rnd(0, 3); for (let j = 0; j < k; j++) v[rnd(0, 11)] = rnd(2, 28);
+    return { arr: mk(v), p: 30 };
+  },
+  pseudo: ['db := 0','Ciklus i := 1-től N-ig','  Ha X[i] < határ akkor','    db := db + 1','    Y[db] := i','  Elágazás vége','Ciklus vége','Ki: Y[1..db]'],
+  py: d => `fenyero = [${list(d)}]   # %\nHATAR = ${d.p}\n\ncsere = []\nfor i in range(len(fenyero)):\n    if fenyero[i] < HATAR:\n        csere.append(i + 1)     # sorszám, 1-től\nif csere:\n    print("Cserélendő izzók:", *csere)\nelse:\n    print("Nincs cserélendő izzó.")`,
+  gen(d){
+    const a = d.arr, P = d.p, R = [], Y = []; const st = {};
+    const V = o => ({ ...o, db: Y.length, Y: `[${Y.join(', ')}]` });
+    R.push(F(a, { line: 0, vars: V({ 'határ': P + '%' }), msg: `Az Y lista kezdetben üres, db = 0. A ${P}% alatti izzókat válogatjuk ki.` }));
+    a.forEach((x, i) => {
+      const bad = x.v < P;
+      R.push(F(a, { line: 2, st: { ...st, [i]: 'active' }, marks: { [i]: ['i'] }, vars: V({ i: i+1, 'X[i]': x.v + '%' }), msg: `${Az(i+1)} ${i+1}. izzó fényereje ${x.v}%. Kevesebb, mint ${P}%?` }));
+      if (bad){
+        st[i] = 'alert'; Y.push(i + 1);
+        R.push(F(a, { line: [3, 4], st: { ...st }, marks: { [i]: ['i'] }, vars: V({ i: i+1, 'X[i]': x.v + '%' }), msg: `Igen, ezt cserélni kell. db = ${Y.length}, és a sorszáma bekerül a listába: Y[${Y.length}] := ${i+1}.` }));
+      } else {
+        st[i] = 'seen';
+        R.push(F(a, { line: 2, st: { ...st }, marks: { [i]: ['i'] }, vars: V({ i: i+1, 'X[i]': x.v + '%' }), msg: 'Nem, ez az izzó jó.' }));
+      }
+    });
+    R.push(F(a, { line: 7, st: { ...st }, vars: V({}), msg: Y.length ? `Kész! <b>${Y.length} izzót</b> kell kicserélni, a sorszámuk az Y listában van.` : 'Kész! Egyik izzó sem gyenge, az Y lista üres maradt.', out: Y.length ? `Cserélendő izzók: ${Y.join(' ')}` : 'Nincs cserélendő izzó.' }));
+    return R;
+  },
+  quiz: [
+    { q: 'Mit tárol az Y lista?', o: ['Az összes izzó fényerejét', 'A feltételnek megfelelő izzók sorszámát', 'A jó izzók számát', 'A legrosszabb izzó sorszámát'], a: 1, why: 'A kiválogatás egy új listába gyűjti a feltételnek megfelelő elemeket, itt a cserélendő izzók sorszámát.' },
+    { q: 'Mit mutat a db értéke a végén?', o: ['Hány izzó van összesen', 'Hány izzót válogattunk ki', 'A legkisebb fényerőt', 'Az utolsó izzó sorszámát'], a: 1, why: 'A kiválogatásban benne van egy megszámolás is: db = az Y lista hossza.' },
+    { q: 'Miért nem állhat meg a ciklus az első gyenge izzónál, mint a keresésnél?', o: ['Mert az összes gyenge izzót meg kell találni, nem csak az elsőt', 'Mert a keresés is mindig végigmegy', 'Megállhat, ugyanaz az eredmény', 'Mert az Y lista csak a végén jön létre'], a: 0, why: 'A kérdés az, MELYEK a gyengék, ezért minden izzót meg kell vizsgálni.' }
+  ]
+};
+
+/* ---------- 7. RENDEZÉS: karácsonyi műsor ---------- */
+const REND = {
+  id: 'rendezes', name: 'Rendezés', topic: 'karácsonyi műsor', week: 4,
+  title: 'Karácsonyi műsor',
+  task: 'Az adatok a kórus tagjainak magassága centiméterben. A fellépéshez rendezze őket növekvő sorrendbe, és írja ki a rendezett sort!',
+  idea: 'Mindig két <b>szomszédot</b> hasonlítunk össze, és ha rossz sorrendben állnak, helyet cserélnek. Egy kör végére a legmagasabb a sor végére „buborékozik”. Ez a buborékrendezés.',
+  mode: 'bars', domain: [125, 200],
+  legend: [['active','összehasonlított pár'],['swap','csere'],['sorted','már a helyén van']],
+  data(){ return { arr: mk(uniq(8, 145, 192)) }; },
+  pseudo: ['Ciklus i := N-től 2-ig (−1-esével)','  Ciklus j := 1-től i−1-ig','    Ha X[j] > X[j+1] akkor','      Csere(X[j], X[j+1])','    Elágazás vége','  Ciklus vége','Ciklus vége','Ki: X'],
+  py: d => `magassagok = [${list(d)}]   # cm\n\nn = len(magassagok)\nfor i in range(n - 1, 0, -1):\n    for j in range(i):\n        if magassagok[j] > magassagok[j + 1]:\n            magassagok[j], magassagok[j + 1] = magassagok[j + 1], magassagok[j]\nprint(*magassagok)\n\n# Pythonban röviden: magassagok.sort()`,
+  gen(d){
+    const a = d.arr.map(x => ({ ...x })), n = a.length, R = []; let cmp = 0, sw = 0; const done = {};
+    const S = extra => { const s = {}; for (const k in done) s[k] = 'sorted'; return Object.assign(s, extra || {}); };
+    R.push(F(a, { line: 0, vars: { 'kör': 1, 'összehasonlítás': 0, csere: 0 }, msg: 'Kezdődik az első kör. Balról jobbra haladva mindig két szomszédot hasonlítunk össze.' }));
+    for (let i = n - 1; i >= 1; i--){
+      const kor = n - i;
+      for (let j = 0; j < i; j++){
+        cmp++;
+        const x = a[j].v, y = a[j+1].v, bad = x > y;
+        const V = { 'kör': kor, j: j+1, 'összehasonlítás': cmp, csere: sw };
+        const mm = { [j]: ['j'], [j+1]: ['j+1'] };
+        R.push(F(a, { line: 2, st: S({ [j]: 'active', [j+1]: 'active' }), marks: mm, vars: V, msg: bad ? `${x} &gt; ${y}: rossz sorrendben állnak.` : `${x} ≤ ${y}: jó sorrendben állnak, nincs teendő.` }));
+        if (bad){
+          [a[j], a[j+1]] = [a[j+1], a[j]]; sw++;
+          R.push(F(a, { line: 3, st: S({ [j]: 'swap', [j+1]: 'swap' }), marks: mm, vars: { ...V, csere: sw }, msg: `Csere! Most ${a[j].v} áll elöl, ${a[j+1].v} mögötte.` }));
+        }
+      }
+      done[i] = 1;
+      R.push(F(a, { line: 5, st: S(), vars: { 'kör': kor, 'összehasonlítás': cmp, csere: sw }, msg: `${Az(kor)} ${kor}. kör végére a legmagasabb még rendezetlen tanuló (${a[i].v} cm) a helyére került.` }));
+    }
+    done[0] = 1;
+    R.push(F(a, { line: 7, st: S(), vars: { 'összehasonlítás': cmp, csere: sw }, msg: `Kész, a kórus felállhat! ${cmp} összehasonlítás és ${sw} csere kellett.`, out: a.map(x => x.v).join(' ') }));
+    return R;
+  },
+  quiz: [
+    { q: 'Mi biztos az első kör (a külső ciklus első lefutása) után?', o: ['A legalacsonyabb áll elöl', 'A legmagasabb áll a sor végén', 'A sor már rendezett', 'Semmi sem biztos'], a: 1, why: 'A legmagasabb minden összehasonlításnál „nyer”, ezért végig felbuborékozik a sor végére.' },
+    { q: 'Hány összehasonlítás kell 8 tanulónál?', o: ['8', '64', '28', '16'], a: 2, why: '7 + 6 + 5 + 4 + 3 + 2 + 1 = 28, azaz N·(N−1)/2.' },
+    { q: 'Miért csökken körről körre a belső ciklus határa (i)?', o: ['Mert a sor vége már rendezett, oda felesleges nézni', 'Hogy a program rövidebb legyen', 'Mert az alacsonyak elfogynak', 'Véletlenül, nincs oka'], a: 0, why: 'Minden kör a helyére tesz egy újabb tanulót a sor végén, őket már nem kell vizsgálni.' },
+    { q: 'Egy körben egyetlen csere sem történt. Mit jelent ez?', o: ['Hiba történt', 'A sor már rendezett, be lehetne fejezni', 'Még egy kör biztosan kell', 'A sor fordított sorrendű'], a: 1, why: 'Ha minden szomszédos pár jó sorrendben van, a sor rendezett. A „javított buborékrendezés” erre figyelve korábban megáll.' }
+  ]
+};
+
+const ALGOS = [OSSZ, MEGSZ, MAX, ELD, KER, KIV, REND];
+
+/* ---------- player ---------- */
+const state = { algo: null, data: null, frames: [], pos: 0, timer: null, speed: 850 };
+
+function candles(k){
+  // Hungarian advent wreath: 3 purple + 1 pink (lit on the 3rd Sunday)
+  const xs = [36, 62, 88, 114], col = ['#6b3fa0', '#6b3fa0', '#e48ab0', '#6b3fa0'];
+  const berries = [[22, 86], [52, 93], [98, 93], [128, 86], [75, 95]];
+  return `<svg class="candles" viewBox="0 0 150 104" role="img" aria-label="Adventi koszorú, ${k ? k + ' gyertya ég' : 'a gyertyák még nem égnek'}">
+    ${xs.map((x, i) => i < k ? `<circle class="glow" cx="${x}" cy="22" r="13"/>` : '').join('')}
+    ${xs.map((x, i) => `<rect x="${x - 7}" y="38" width="14" height="46" rx="3" fill="${col[i]}"/><line class="wick" x1="${x}" y1="38" x2="${x}" y2="31"/>${i < k ? `<path class="flame" d="M${x} 9 C${x + 7} 18 ${x + 6} 30 ${x} 30 C${x - 6} 30 ${x - 7} 18 ${x} 9Z"/><ellipse class="core" cx="${x}" cy="25" rx="2.4" ry="4"/>` : ''}`).join('')}
+    <path class="leaf" d="M10 84 Q75 104 140 84"/>
+    ${berries.map(([x, y]) => `<circle class="berry" cx="${x}" cy="${y}" r="4"/>`).join('')}
+  </svg>`;
+}
+
+function viewHTML(a){
+  const p = a.param;
+  return `
+  <div class="chap-head"><span class="eyebrow">Advent ${a.week}. hete · ${a.name}</span></div>
+  <h2 class="chap-title">${a.title}</h2>
+  <div class="intro">
+    <div class="card"><h3>A feladat</h3><p class="task">${a.task}</p></div>
+    <div class="card"><h3>Az ötlet</h3><p>${a.idea}</p></div>
+  </div>
+  <div class="work">
+    <div class="card">
+      ${p ? `<div class="ask"><label for="param">${p.label}</label><input id="param" type="number" min="${p.min}" max="${p.max}" step="${p.step}"><span class="unit">${p.unit}</span><button id="b-go">Újrafuttatás</button><span class="hint">Próbáld ki más határral is!</span></div>` : ''}
+      <div class="stage${a.mode === 'boxes' ? ' boxes' : ''}" id="stage" aria-hidden="true"></div>
+      <div class="idx" id="idx" aria-hidden="true"></div>
+      <div class="marks" id="marks" aria-hidden="true"></div>
+      <div class="legend">${a.legend.map(([c, t]) => `<span><i class="sw ${c}"></i>${t}</span>`).join('')}</div>
+      <p class="msg" id="msg" aria-live="polite"></p>
+      <div class="out"><span class="lbl">Képernyő</span><span id="out"></span></div>
+      <div class="controls">
+        <button id="b-reset">Elölről</button>
+        <button id="b-prev">Vissza</button>
+        <button id="b-next" class="primary">Következő lépés</button>
+        <button id="b-play">Lejátszás</button>
+        <label class="spd" for="speed">Tempó
+          <select id="speed"><option value="1500">lassú</option><option value="850">közepes</option><option value="350">gyors</option></select>
+        </label>
+        <button id="b-new" class="push">Új adatok</button>
+      </div>
+      <div class="progress"><span id="stepno"></span><input type="range" id="scrub" min="0" value="0" aria-label="Lépés kiválasztása"></div>
+    </div>
+    <div class="card">
+      <h3>Mondatszerű leírás</h3>
+      <div class="code"><ol id="code">${a.pseudo.map(l => `<li>${esc(l)}</li>`).join('')}</ol></div>
+      <h3>Változók</h3>
+      <div class="vars" id="vars"></div>
+      <details><summary>Ugyanez Pythonban</summary><pre id="py"></pre></details>
+    </div>
+  </div>
+  <section class="quiz" aria-labelledby="qh">
+    <h2 id="qh">Ellenőrizd magad</h2>
+    <p class="sub" id="score"></p>
+    <div class="qs" id="qs"></div>
+  </section>`;
+}
+
+const hPct = (a, v) => { const [lo, hi] = a.domain, m = a.minH ?? 12; return m + (100 - m) * Math.max(0, Math.min(1, (v - lo) / (hi - lo))); };
+
+function renderFrame(){
+  const a = state.algo, f = state.frames[state.pos], n = f.arr.length, w = 100 / n;
+  const stage = $('#stage'), keep = new Set(), fmt = a.fmt || (v => v);
+  f.arr.forEach((x, k) => {
+    let el = stage.querySelector(`[data-id="${x.id}"]`);
+    if (!el){
+      el = document.createElement('div');
+      el.dataset.id = x.id;
+      el.innerHTML = '<div class="bar"><span class="val"></span></div>';
+      el.style.left = (k * w) + '%';
+      stage.appendChild(el);
+    }
+    el.className = 'item ' + (f.st[k] || '');
+    el.style.left = (k * w) + '%';
+    el.style.width = w + '%';
+    el.firstChild.style.height = hPct(a, x.v) + '%';
+    el.querySelector('.val').textContent = fmt(x.v);
+    keep.add(String(x.id));
+  });
+  stage.querySelectorAll('.item').forEach(el => { if (!keep.has(el.dataset.id)) el.remove(); });
+  $('#idx').innerHTML = f.arr.map((_, k) => `<span style="left:${k * w}%;width:${w}%">${k + 1}</span>`).join('');
+  $('#marks').innerHTML = Object.entries(f.marks).map(([k, ts]) => `<div class="mark-cell" style="left:${k * w}%;width:${w}%">${ts.map(t => `<span class="tag">${t}</span>`).join('')}</div>`).join('');
+  $('#msg').innerHTML = f.msg;
+  $('#out').innerHTML = f.out ? esc(f.out) : '<span class="ph">A program kimenete a végén jelenik meg.</span>';
+  $('#vars').innerHTML = Object.entries(f.vars).map(([k, v]) => `<span class="var">${k} = <b>${v}</b></span>`).join('');
+  const L = [].concat(f.line);
+  $('#code').querySelectorAll('li').forEach((li, i) => li.classList.toggle('on', L.includes(i)));
+  const last = state.frames.length - 1;
+  $('#scrub').max = last; $('#scrub').value = state.pos;
+  $('#stepno').textContent = `${state.pos + 1}. / ${last + 1} lépés`;
+  $('#b-prev').disabled = $('#b-reset').disabled = state.pos === 0;
+  $('#b-next').disabled = state.pos === last;
+}
+
+function step(d){
+  state.pos = Math.max(0, Math.min(state.frames.length - 1, state.pos + d));
+  renderFrame();
+  if (state.timer && state.pos === state.frames.length - 1) stop();
+}
+function play(){
+  if (state.pos >= state.frames.length - 1){ state.pos = 0; renderFrame(); }
+  state.timer = setInterval(() => step(1), state.speed);
+  $('#b-play').textContent = 'Szünet';
+}
+function stop(){
+  clearInterval(state.timer); state.timer = null;
+  const b = $('#b-play'); if (b) b.textContent = 'Lejátszás';
+}
+const toggle = () => state.timer ? stop() : play();
+
+function rebuild(){
+  stop();
+  const a = state.algo;
+  state.frames = a.gen(state.data);
+  state.pos = 0;
+  $('#stage').innerHTML = a.param ? `<div class="thr" style="bottom:${hPct(a, state.data.p)}%"></div>` : '';
+  $('#py').textContent = a.py(state.data);
+  renderFrame();
+}
+function setData(d){
+  state.data = d;
+  if (state.algo.param) $('#param').value = d.p;
+  rebuild();
+}
+
+function wire(){
+  const a = state.algo;
+  $('#b-next').onclick = () => { stop(); step(1); };
+  $('#b-prev').onclick = () => { stop(); step(-1); };
+  $('#b-reset').onclick = () => { stop(); state.pos = 0; renderFrame(); };
+  $('#b-play').onclick = toggle;
+  $('#b-new').onclick = () => { const p = state.data.p; const d = a.data(); if (a.param) d.p = p; setData(d); };
+  $('#speed').value = String(state.speed);
+  $('#speed').onchange = e => { state.speed = +e.target.value; if (state.timer){ stop(); play(); } };
+  $('#scrub').oninput = e => { stop(); state.pos = +e.target.value; renderFrame(); };
+  if (a.param){
+    const go = () => {
+      const v = parseInt($('#param').value, 10);
+      if (Number.isNaN(v)) return;
+      state.data.p = Math.max(a.param.min, Math.min(a.param.max, v));
+      $('#param').value = state.data.p;
+      rebuild();
+    };
+    $('#b-go').onclick = go;
+    $('#param').onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+}
+
+/* ---------- progress: a week's wreath lights up when all its questions are answered correctly ---------- */
+const PKEY = 'advent-algoritmusok-v1';
+let progress = {};
+try { progress = JSON.parse(localStorage.getItem(PKEY)) || {}; } catch (e) { progress = {}; }
+const saveProgress = () => { try { localStorage.setItem(PKEY, JSON.stringify(progress)); } catch (e) {} };
+const solved = id => new Set(progress[id] || []);
+const weekStat = w => { let s = 0, t = 0; ALGOS.filter(a => a.week === w).forEach(a => { s += solved(a.id).size; t += a.quiz.length; }); return [s, t]; };
+const weekDone = w => { const [s, t] = weekStat(w); return s === t; };
+
+function renderNav(){
+  $('#tabs').innerHTML = [1, 2, 3, 4].map(w => {
+    const [s, t] = weekStat(w), done = s === t;
+    return `<div class="week"><div class="week-head">${candles(done ? w : 0)}<span class="wk">Advent ${w}. hete</span><span class="prog${done ? ' done' : ''}">${done ? 'Minden kérdés megoldva!' : `${s} / ${t} helyes válasz`}</span></div>${ALGOS.filter(a => a.week === w).map(a => `<a href="#${a.id}" data-id="${a.id}"${state.algo && state.algo.id === a.id ? ' aria-current="page"' : ''}><span class="t">${a.title}</span><span class="k">${a.name}</span></a>`).join('')}</div>`;
+  }).join('');
+}
+
+function renderQuiz(a){
+  const qs = $('#qs'), ok = solved(a.id);
+  qs.innerHTML = a.quiz.map((q, qi) => {
+    const s = ok.has(qi);
+    return `<div class="card q" data-q="${qi}"${s ? ' data-done="1"' : ''}><p class="qt"><span class="qn">${qi + 1}.</span> ${q.q}</p><div class="opts">${q.o.map((o, oi) => `<button class="opt${s && oi === q.a ? ' right' : ''}" data-o="${oi}"${s ? ' disabled' : ''}>${o}</button>`).join('')}</div><p class="fb"${s ? '' : ' hidden'}>${s ? `<b>Helyes.</b> ${q.why}` : ''}</p></div>`;
+  }).join('');
+  const upd = () => {
+    const n = solved(a.id).size, w = a.week;
+    $('#score').textContent = `${n} / ${a.quiz.length} kérdés megoldva.` + (weekDone(w) ? ` Az adventi ${w}. hét minden kérdése kész, meggyulladt a koszorú!` : ' Ha a hét összes feladatának minden kérdésére helyesen válaszolsz, meggyullad a hét koszorúja.');
+  };
+  upd();
+  qs.addEventListener('click', e => {
+    const b = e.target.closest('.opt'); if (!b) return;
+    const card = b.closest('.q'); if (card.dataset.done) return;
+    const qi = +card.dataset.q, q = a.quiz[qi], fb = card.querySelector('.fb');
+    fb.hidden = false;
+    if (+b.dataset.o === q.a){
+      b.classList.add('right'); card.dataset.done = '1';
+      fb.innerHTML = `<b>Helyes.</b> ${q.why}`;
+      card.querySelectorAll('.opt').forEach(x => x.disabled = true);
+      const set = solved(a.id); set.add(qi); progress[a.id] = [...set]; saveProgress();
+      renderNav();
+    } else {
+      b.classList.add('wrong'); b.disabled = true;
+      fb.innerHTML = '<b>Nem ez.</b> Gondold át még egyszer, vagy futtasd le újra az animációt.';
+    }
+    upd();
+  });
+}
+
+function show(a){
+  stop();
+  state.algo = a;
+  renderNav();
+  $('#view').innerHTML = viewHTML(a);
+  wire();
+  setData(a.data());
+  renderQuiz(a);
+}
+
+$('#b-progress').onclick = () => { progress = {}; saveProgress(); show(state.algo); };
+
+/* falling snow in the header */
+(function(){
+  const c = $('#snow'), ctx = c.getContext('2d');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0; const dpr = window.devicePixelRatio || 1;
+  const fl = Array.from({ length: 80 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.8 + 0.7, s: Math.random() * 0.5 + 0.25, d: Math.random() * 6.3 }));
+  function size(){ const r = c.getBoundingClientRect(); W = c.width = Math.max(1, r.width * dpr); H = c.height = Math.max(1, r.height * dpr); draw(); }
+  function draw(){ ctx.clearRect(0, 0, W, H); ctx.fillStyle = 'rgba(255,255,255,.8)'; for (const f of fl){ ctx.beginPath(); ctx.arc(f.x * W, f.y * H, f.r * dpr, 0, 7); ctx.fill(); } }
+  function tick(){ for (const f of fl){ f.y += f.s * dpr / H; f.d += 0.012; f.x += Math.sin(f.d) * 0.0003; if (f.y > 1.03){ f.y = -0.03; f.x = Math.random(); } } draw(); requestAnimationFrame(tick); }
+  window.addEventListener('resize', size); size();
+  if (!reduce) requestAnimationFrame(tick);
+})();
+function route(){
+  const id = location.hash.slice(1);
+  show(ALGOS.find(a => a.id === id) || ALGOS[0]);
+}
+window.addEventListener('hashchange', route);
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, select, textarea')) return;
+  if (e.key === 'ArrowRight'){ stop(); step(1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft'){ stop(); step(-1); e.preventDefault(); }
+  else if (e.key === ' ' && !e.target.closest('button, a, summary')){ toggle(); e.preventDefault(); }
+});
+route();
+</script>
+</body>
+</html>
